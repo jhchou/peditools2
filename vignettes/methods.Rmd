@@ -1,0 +1,178 @@
+---
+title: "Methods"
+output: markdown::html_format
+vignette: >
+  %\VignetteIndexEntry{Methods}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+library(peditools2)
+```
+
+This vignette describes how peditools2 calculates: the parameters, how they are read at any x, and the methods.
+The calculations are those of the PediTools engine (<https://peditools.org/>), and are checked against it (see
+"How the package is checked"). Each chart's sources are on the PediTools Sources and methods page
+(`growth_charts()$sources_url`, `growth_references()`).
+
+## The parameters
+
+The parameter tables are those of PediTools, as published by their authors or provided by them, each checked row by
+row against its source. Two kinds of charts:
+
+- **LMS tables** (`family` `"lms"` in `growth_charts()`): L, M and S at each row of x.
+- **INTERGROWTH-21st models**: parts used one after the other along x, each an ST3 day table (`"st3"`: mu, sigma,
+  nu, tau) or a normal model whose mean and SD are equations in x (`"normal"`, in `growth_equations()`). Newborn
+  size uses the very preterm equations before 231 days and the ST3 table from 231 days (`family`
+  `"normal, st3"`); the parts are never mixed, so the curves step at 231 days, as published.
+
+## The parameters at x
+
+Between two rows, each parameter is interpolated linearly. Within $10^{-9}$ (relative) of a row, the row is used as
+published. Some tables step between two rows (`x_break`, e.g. 730.5 days in WHO's daily tables, where lying length
+becomes standing height): the row on x's side is used, never an interpolation across the step (at the step itself,
+the row after it, as in WHO Anthro).
+
+x can be any number: the daily tables are interpolated between days. PediTools enters ages in whole days, so
+`floor()` of an age in days gives the website's values exactly.
+
+## Coverage and extrapolation
+
+Each chart has a published coverage (`x_min`, `x_max`). For most it is the table's first and last rows. Where the
+rows are the midpoints of bands (e.g. Fenton 2003, from 22 0/7 weeks, the first row at 22.5 weeks), the coverage
+reaches beyond the end row by at most half a row step, and the parameters there are on the line through the two end
+rows. For age-based charts, an x at most 5 minutes outside a bound is taken at the bound.
+
+The `extrapolate` argument:
+
+- `"coverage"` (default): the published coverage; outside it, `NA`.
+- `"none"`: only between the table's first and last rows (for INTERGROWTH-21st, the coverage).
+- `"linear"`: any x. Beyond the coverage, the parameters are on the line through the two end rows (for a coverage
+  that starts at a step, the two rows after it); the INTERGROWTH-21st equations are evaluated as they are. The
+  results say so (`beyond_coverage` in `growth_detail()`), and the plots dash those parts.
+
+```{r}
+growth_params(c(20, 22, 22.5), NA, "fenton_2003", "weight", extrapolate = "linear")[
+  c("x", "L", "M", "S", "extrapolated", "beyond_coverage")
+]
+```
+
+## The LMS method
+
+For a measurement $y$ with parameters $L$, $M$, $S$ at x (Cole and Green 1992):
+
+$$Z = \frac{(y/M)^L - 1}{L S} \quad (L \ne 0), \qquad Z = \frac{\ln(y/M)}{S} \quad (L = 0)$$
+
+$$y = M (1 + L S Z)^{1/L} \quad (L \ne 0), \qquad y = M e^{S Z} \quad (L = 0)$$
+
+$|L| < 10^{-9}$ is taken as $L = 0$. Where $1 + L S Z \le 0$, the curve has no value (`status` `"undefined"`).
+`growth_lms_z()` and `growth_lms_y()` apply these to parameters you give.
+
+## WHO's restricted LMS method ("SD23")
+
+For its skewed indicators, WHO prescribes the LMS Z-score within ±3 SD and, beyond, a straight line whose spread is
+the distance between the 2 and 3 SD values at the same x (WHO 2006):
+
+$$Z^* = 3 + \frac{y - SD_3}{SD_3 - SD_2} \quad (Z > 3), \qquad Z^* = -3 + \frac{y - SD_{-3}}{SD_{-2} - SD_{-3}} \quad (Z < -3)$$
+
+where $SD_k$ is the measurement at $Z = k$. It applies where the chart's authors prescribe it (`z_method` `"sd23"`):
+
+```{r}
+sd23 <- growth_charts()
+sd23 <- unique(sd23[sd23$z_method == "sd23", c("chart", "measure")])
+aggregate(measure ~ chart, sd23, paste, collapse = ", ")
+```
+
+`sd23 = FALSE` turns it off; `sd23 = TRUE` applies it to any chart, with the 2 and 3 SD values of the chart's
+own distribution (also ST3 and the equations). Where the distribution is symmetric, it changes nothing.
+
+```{r}
+growth_z(c(3.5, 12.5), 6, "m", "who_2006_infant", "weight")
+growth_z(c(3.5, 12.5), 6, "m", "who_2006_infant", "weight", sd23 = FALSE)
+```
+
+## CDC's extended BMI-for-age method
+
+At or above the 95th percentile (P95) of CDC 2000 BMI-for-age (`cdc_2000_bmi`), CDC's extended method (Wei et al.
+2020) replaces the LMS distribution:
+
+$$p = 0.90 + 0.10\, \Phi\!\left(\frac{BMI - P95}{\sigma}\right), \qquad Z = \Phi^{-1}(p)$$
+
+with P95 from the LMS parameters and $\sigma = 0.3728 + 0.5196\,a - 0.0091\,a^2$ (boys) or
+$0.8334 + 0.3712\,a - 0.0011\,a^2$ (girls), $a$ the age in years (months × 30.4375 / 365.25). The inverse, for a
+percentile at or above the 95th, is $BMI = P95 + \sigma\, \Phi^{-1}((p - 0.90)/0.10)$. Below P95 the LMS method
+applies, and the two meet at P95. `growth_detail()` gives P95 and $\sigma$ (`p95`, `ext_sigma`), e.g. for the BMI as
+a percentage of P95. `cdc_bmi_ext = FALSE` gives the plain LMS values.
+
+```{r}
+d <- growth_detail(c(24, 30, 36), 150, "m", "cdc_2000_bmi", "bmi")
+cbind(d[c("y", "z", "p", "method", "p95")], pct_of_p95 = 100 * d$y / d$p95)
+```
+
+## INTERGROWTH-21st
+
+Z-scores are $Z = \Phi^{-1}(F(y))$, $F$ the distribution of the part used at x, computed from the smaller tail so
+that they stay accurate far into the tails.
+
+**ST3** (the skew t of the R package gamlss.dist; Rigby et al. 2019), the newborn size standards from 33+0 weeks: a
+Student t with $\tau$ degrees of freedom, scaled by $\sigma/\nu$ below $\mu$ and by $\sigma\nu$ above it. With $T$
+the t distribution function:
+
+$$F(y) = \frac{2\, T\!\left(\nu (y - \mu)/\sigma\right)}{1 + \nu^2} \quad (y < \mu), \qquad 1 - F(y) = \frac{2 \nu^2 \left(1 - T\!\left((y - \mu)/(\sigma \nu)\right)\right)}{1 + \nu^2} \quad (y \ge \mu)$$
+
+$\mu$ is not the median unless $\nu = 1$. `growth_st3_z()` and `growth_st3_y()` apply it to parameters you give.
+
+**Normal models** (very preterm newborn size, postnatal growth, weight-for-length, the fetal standards): the mean and
+SD are equations in x, each a transform (identity, exp or sqrt) of a sum of terms
+$c\, t^{p} (\ln t)^{q}$ with $t = x / x_{scale}$; a term marked `male` applies to boys only. On the log scale
+(`y_scale` `"log"`) the model is for $\ln y$. Values below 0 are allowed where the distribution allows them (ST3 and
+the identity scale), as in PediTools; the LMS method and the log scale need positive measurements.
+
+The equations and ST3 tables are those of the gigs R package 0.5.2 (Parker et al. 2025), checked by PediTools
+against it and against the INTERGROWTH-21st publications.
+
+## Missing and invalid values
+
+Each value has a status (`growth_detail()`): `"ok"`; `"missing"` (an input is `NA`); `"outside"` (x outside the
+range `extrapolate` allows); `"invalid"` (a measurement that is not finite, or not positive where the method needs
+it; an infinite Z; a probability not strictly between 0 and 1); `"undefined"` (no value there, e.g.
+$1 + L S Z \le 0$). `growth_z()`, `growth_p()` and `growth_y()` return `NA` for all but `"ok"`, with one warning per
+call for the reasons other than missing data. An unknown chart id, or a measure the chart does not have, is an error.
+
+## Unit conversions
+
+`growth_convert()` uses the factors of PediTools, exact by definition: 1 lb = 453.59237 g, 1 oz = 1/16 lb,
+1 in = 2.54 cm, 1 week = 7 days, 1 month = 30.4375 days, 1 year = 365.25 days. `growth_age_days()` counts calendar
+days. The corrected age is the age minus (280 days − the gestational age at birth), and the PMA the gestational age
+at birth plus the age.
+
+## How the package is checked
+
+- **Against the PediTools engine**, on every table of every chart: the parameters at a grid of x (the coverage
+  bounds, the end rows, around the steps and the INTERGROWTH-21st part boundaries, rows and midpoints across the
+  table, random x) and the measurement at Z from −5 to 5, by each chart's method, from a file the engine writes. The
+  package equals the engine within $10^{-11}$ (relative; in practice about $10^{-13}$) for the LMS tables and the
+  equations, and for the ST3 tables within $10^{-11}$ (absolute) in the far tails, where the two use different
+  algorithms for the t distribution.
+- **The engine itself** is checked against the sources (every row of every table), WHO's anthro and anthroplus R
+  packages, the gigs package and CPEG's preterm Z-score calculator; see the Sources and methods page.
+- **What the website does not do** (unlimited extrapolation, SD23 on any chart, the inverse of the extended BMI
+  method) is checked against the formulas above.
+
+## References
+
+- Cole TJ, Green PJ. Smoothing reference centile curves: the LMS method and penalized likelihood. Stat Med.
+  1992;11(10):1305-19. doi:10.1002/sim.4780111005
+- WHO Multicentre Growth Reference Study Group. WHO Child Growth Standards: Length/height-for-age, weight-for-age,
+  weight-for-length, weight-for-height and body mass index-for-age: Methods and development. World Health
+  Organization; 2006.
+- Wei R, Ogden CL, Parsons VL, Freedman DS, Hales CM. A method for calculating BMI z-scores and percentiles above the
+  95th percentile of the CDC growth charts. Ann Hum Biol. 2020;47(6):514-521. doi:10.1080/03014460.2020.1808065
+- Rigby RA, Stasinopoulos DM, Heller GZ, De Bastiani F. Distributions for Modeling Location, Scale, and Shape: Using
+  GAMLSS in R. Chapman & Hall/CRC; 2019. doi:10.1201/9780429298547
+- Parker SR, Vesel L, Ohuma EO. gigs: A package for standardising fetal, neonatal, and child growth assessment.
+  J Open Source Softw. 2025;10(106):7655. doi:10.21105/joss.07655
+- Chou JH, Roumiantsev S, Singh R. PediTools Electronic Growth Chart Calculators: Applications in Clinical Care,
+  Research, and Quality Improvement. J Med Internet Res. 2020;22(1):e16204. doi:10.2196/16204

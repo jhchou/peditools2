@@ -1,0 +1,170 @@
+---
+title: "Getting started with peditools2"
+output: markdown::html_format
+vignette: >
+  %\VignetteIndexEntry{Getting started with peditools2}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+```
+
+peditools2 calculates Z-scores, percentiles and measurements on pediatric, neonatal and fetal growth charts from
+their published parameters: the charts of [PediTools](https://peditools.org/), with the same methods and the same
+results. It is written for data analysis: every function is vectorised, and the methods the website applies (and
+some it does not, such as extrapolation) can be switched.
+
+```{r}
+library(peditools2)
+```
+
+## Finding a chart
+
+Every chart is identified by a chart id and a measure. `growth_charts()` lists them, one row per chart, measure and
+sex, with the units of x (age, length or height) and of the measurement, and the published coverage:
+
+```{r}
+charts <- growth_charts()
+head(charts[c("chart", "measure", "sex", "x_units", "measure_units", "x_min", "x_max", "z_method")])
+growth_charts("who_2006_infant")[c("measure", "sex", "x_units", "x_min", "x_max", "z_method")]
+```
+
+**Units.** The calculations take x and the measurement in the chart's own units (`x_units`, `measure_units`):
+months for the CDC and WHO infant charts, weeks for the preterm charts, days for the INTERGROWTH-21st newborn
+standards, kg or g for weight. Convert first; the helpers below use PediTools' constants.
+
+## Z-scores and percentiles
+
+`growth_z()` and `growth_p()` take the measurement `y`, `x`, `sex`, `chart` and `measure`, each a single value or a
+vector of the common length. `growth_p()` gives the probability, the percentile divided by 100 (as `pnorm()`).
+
+```{r}
+growth_z(8.2, 9.5, "f", "cdc_2000_infant", "weight")
+growth_p(8.2, 9.5, "f", "cdc_2000_infant", "weight")
+```
+
+With a data frame (here made-up data):
+
+```{r}
+set.seed(1)
+d <- data.frame(
+  id = rep(c("a", "b", "c"), each = 3),
+  sex = rep(c("f", "m", "f"), each = 3),
+  birth = rep(as.Date(c("2024-01-15", "2024-03-02", "2024-05-20")), each = 3),
+  visit = as.Date("2024-06-01") + rep(c(0, 90, 180), 3),
+  weight = round(c(6.2, 7.4, 8.3, 6.9, 8.4, 9.6, 4.6, 6.4, 7.6) + rnorm(9, 0, 0.1), 2)
+)
+d$age_days <- growth_age_days(d$birth, d$visit)
+d$age_months <- growth_convert(d$age_days, "days", "months")
+d$z <- growth_z(d$weight, d$age_months, d$sex, "who_2006_infant", "weight")
+d$percentile <- 100 * growth_p(d$weight, d$age_months, d$sex, "who_2006_infant", "weight")
+d[c("id", "sex", "age_days", "weight", "z", "percentile")]
+```
+
+`sex` accepts `"m"`, `"f"`, `"male"`, `"female"` in any case. Charts can differ between rows too: `chart` and
+`measure` are vectorised like the rest.
+
+## Measurements at a Z-score or percentile
+
+`growth_y()` is the inverse: the measurement at a Z-score `z`, or at a probability `p`.
+
+```{r}
+growth_y(p = c(0.03, 0.5, 0.97), x = 12, sex = "m", chart = "who_2006_infant", measure = "weight")
+
+# Expected growth: the weight at 12 months at the Z-score of 7.1 kg at 6 months
+z <- growth_z(7.1, 6, "m", "who_2006_infant", "weight")
+growth_y(z, 12, "m", "who_2006_infant", "weight")
+```
+
+## Preterm infants: PMA and corrected age
+
+The preterm charts take the postmenstrual age (PMA) in weeks; the infant charts can take a corrected age:
+
+```{r}
+# Born at 27 2/7 weeks, 40 days old
+growth_pma(40, 27, 2)
+growth_z(1.25, growth_pma(40, 27, 2), "f", "fenton_2003", "weight")
+
+# Corrected age at 200 days old, in months
+growth_corrected_age(200, 27, 2, units = "months")
+```
+
+## Why a value is NA: `growth_detail()`
+
+Values outside the chart's coverage, or that are not valid, are `NA`, with one warning per call. `growth_detail()`
+gives everything about each value: the parameters at x, the method used and a status.
+
+```{r}
+growth_detail(c(7.9, 3.5, 8), c(6, 6, 30), "m", "who_2006_infant", "weight")[
+  c("x", "y", "z", "method", "status", "L", "M", "S")
+]
+```
+
+## Methods and options
+
+By default each chart is calculated as its authors prescribe and as PediTools does: WHO's restricted LMS method
+beyond ±3 SD on the WHO charts, CDC's extended method above the 95th percentile of CDC BMI-for-age. Three options
+change this for any call (`vignette("methods", package = "peditools2")` describes each method):
+
+- `extrapolate`: `"coverage"` (default), `"none"` (only between the table's rows) or `"linear"` (beyond the
+  coverage, on the line through the two end rows).
+- `sd23`: `TRUE` or `FALSE` to switch WHO's restricted method on or off on any chart.
+- `cdc_bmi_ext`: `FALSE` for plain LMS on CDC BMI-for-age.
+
+```{r}
+growth_z(3.5, 6, "m", "who_2006_infant", "weight", sd23 = FALSE)
+growth_z(30, 150, "m", "cdc_2000_bmi", "bmi", cdc_bmi_ext = FALSE)
+growth_z(0.4, 20, NA, "fenton_2003", "weight", extrapolate = "linear")
+```
+
+## Parameters and curves
+
+`growth_table()` gives a chart's published rows, `growth_params()` its parameters at any x, and `growth_curves()`
+percentile or Z-score curves as a data frame for any plotting library:
+
+```{r}
+head(growth_table("cdc_2000_infant", "length", "f"))
+growth_params(c(9, 9.25, 9.5), "f", "cdc_2000_infant", "length")
+head(growth_curves("cdc_2000_infant", "length", "f", z = c(-2, 0, 2)))
+```
+
+## Plots
+
+`growth_plot()` draws the curves with ggplot2, with measurements if given:
+
+```{r, eval = has_ggplot2, fig.width = 7, fig.height = 4.5}
+growth_plot("who_2006_infant", "weight", c("m", "f"),
+  data = d, x_col = "age_months", y_col = "weight", id_col = "id", sex_col = "sex", xlim = c(0, 12)
+)
+```
+
+## Your own charts
+
+`growth_add_chart()` adds a parameter table of your own (for example one shared by its authors) for the session,
+with its metadata and references; every function then works on it:
+
+```{r}
+my <- growth_table("cdc_2000_infant", "weight") # here a copy, as an example
+my$chart <- "my_chart"
+growth_add_chart(my,
+  metadata = data.frame(chart = "my_chart", x_units = "months", measure_units = "kg"),
+  references = data.frame(chart = "my_chart", citation = "Author A. My growth chart. J Growth 2026;1:1-9.")
+)
+growth_z(8.2, 9.5, "f", "my_chart", "weight")
+growth_remove_chart("my_chart")
+```
+
+## Sources, and citing
+
+`growth_references()` lists each chart's publications, with a link to its section of the PediTools Sources and
+methods page, where the sources and the checks of every table are described:
+
+```{r}
+growth_references("who_2006_infant", "weight")[c("role", "short", "url")]
+growth_data_version()
+```
+
+To cite the package: `citation("peditools2")`.

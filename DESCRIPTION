@@ -1,0 +1,30 @@
+Package: peditools2
+Title: Pediatric and Neonatal Growth Chart Calculations and Parameters
+Version: 0.1.0
+Authors@R:
+    person("Joseph", "Chou", email = "joe.nicu@gmail.com", role = c("aut", "cre"))
+Description: Z-scores, probabilities and measurements for pediatric, neonatal
+    and fetal growth charts and standards (CDC, WHO, INTERGROWTH-21st and
+    others) from their published parameters, by the LMS method, the WHO
+    restricted LMS method, the CDC extended BMI method and the INTERGROWTH-21st
+    models. The parameter tables and their references are those of PediTools
+    <https://peditools.org/>, where each chart's sources and methods are
+    described.
+License: MIT + file LICENSE
+URL: https://github.com/jhchou/peditools2, https://peditools.org/
+BugReports: https://github.com/jhchou/peditools2/issues
+Encoding: UTF-8
+Depends:
+    R (>= 4.1.0)
+Imports:
+    stats,
+    utils
+Suggests:
+    ggplot2,
+    knitr,
+    markdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.0

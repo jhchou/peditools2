@@ -1,0 +1,54 @@
+---
+title: "Charts"
+output: markdown::html_format
+vignette: >
+  %\VignetteIndexEntry{Charts}
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", echo = FALSE)
+library(peditools2)
+```
+
+The charts in this version of peditools2 (data `r paste(growth_data_version(), collapse = ", ")`), generated from
+`growth_charts()` and `growth_references()`. Coverage: the range of x, in the chart's x units; sexes: "both" for
+one table used for both sexes. Each chart's full sources are on the PediTools Sources and methods page
+(`sources_url`).
+
+```{r, results = "asis"}
+charts <- growth_charts()
+refs <- growth_references()
+clinical <- refs[refs$role == "clinical" & refs$position == 1, ]
+fmt <- function(v) format(signif(v, 6), drop0trailing = TRUE, trim = TRUE)
+rows <- lapply(split(charts, charts$chart), function(t) {
+  per_measure <- lapply(split(t, t$measure), function(m) {
+    sexes <- if (all(is.na(m$sex))) "both" else paste(sort(m$sex), collapse = ", ")
+    range <- if (length(unique(m$x_min)) == 1 && length(unique(m$x_max)) == 1) {
+      paste0(fmt(m$x_min[1]), "–", fmt(m$x_max[1]))
+    } else {
+      paste(paste0(m$sex, " ", fmt(m$x_min), "–", fmt(m$x_max)), collapse = "; ")
+    }
+    data.frame(
+      measure = paste0(m$measure[1], " (", m$measure_units[1], ")"),
+      x = paste0(m$x_label[1], ", ", range, " ", m$x_units[1]),
+      sexes = sexes, method = m$z_method[1], family = m$family[1]
+    )
+  })
+  out <- do.call(rbind, per_measure)
+  ref <- clinical$short[clinical$chart == t$chart[1]][1]
+  cbind(
+    chart = c(paste0("`", t$chart[1], "`"), rep("", nrow(out) - 1)), out,
+    website = c(if (t$on_website[1]) "yes" else "no", rep("", nrow(out) - 1)),
+    publication = c(if (is.na(ref)) "" else ref, rep("", nrow(out) - 1))
+  )
+})
+table <- do.call(rbind, rows)
+rownames(table) <- NULL
+cat(knitr::kable(table, format = "pipe"), sep = "\n")
+```
+
+Method: `lms` the LMS method; `sd23` WHO's restricted LMS method beyond ±3 SD; `cdf` the INTERGROWTH-21st models
+($Z = \Phi^{-1}(F(y))$). On `cdc_2000_bmi`, CDC's extended method applies above the 95th percentile. Website: whether
+a PediTools calculator uses the chart. See `vignette("methods", package = "peditools2")`.

@@ -1,0 +1,5 @@
+^LICENSE\.md$
+^\.lintr$
+^\.gitignore$
+^.*\.Rproj$
+^\.Rproj\.user$
