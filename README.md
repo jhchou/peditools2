@@ -13,6 +13,9 @@ the same methods and the same results, for data analysis in R.
   (`growth_references()`).
 - **Curves and plots** (`growth_curves()`, and `growth_plot()` with ggplot2).
 - **Your own charts** for the session (`growth_add_chart()`).
+- **Growth assessment tools**, as the PediTools calculators: mid-parental height (`growth_height_target()`), height
+  velocity (`growth_height_velocity()`), predicted adult height (`growth_height_adult()`) and WHO growth increments
+  (`growth_increments()`).
 
 ## Installation
 
