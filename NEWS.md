@@ -1,3 +1,10 @@
+# peditools2 (development version)
+
+- `growth_target_height()`: mid-parental (target) height from both parents' heights, by Tanner 1970, Hermanussen
+  and Cole 2003, Wright and Cheetham 1999, the Dutch JGZ guideline 2019 and Luo 1998, with each method's range, the
+  SDS on an adult reference (CDC 2000 at 20 years or WHO 2007 at 19 years) and, optionally, the child's height SDS
+  from 2 years and its difference from the target; as the PediTools mid-parental height calculator.
+
 # peditools2 0.2.0
 
 - Two Noonan syndrome charts: `malaquias_2012` (Brazil; height, weight and BMI, 0-20 years) and `isojima_2016`
