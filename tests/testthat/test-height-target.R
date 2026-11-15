@@ -1,22 +1,22 @@
-# growth_target_height(): the cross-check against the PediTools engine (tests/testthat/fixtures/target_height.csv.gz,
+# growth_height_target(): the cross-check against the PediTools engine (tests/testthat/fixtures/height_target.csv.gz,
 # written by the engine's export: every method, both sexes and references, parents' heights and children's ages and
 # heights), and the formulas worked by hand.
 
 all_methods <- c("tanner", "hermanussen_cole", "wright_cheetham", "jgz", "luo")
 
 test_that("every value equals the engine's", {
-  f <- utils::read.csv(gzfile(testthat::test_path("fixtures", "target_height.csv.gz")),
+  f <- utils::read.csv(gzfile(testthat::test_path("fixtures", "height_target.csv.gz")),
     stringsAsFactors = FALSE, na.strings = ""
   )
   expect_gt(nrow(f), 500)
   cases <- unique(f[c("sex", "father", "mother", "reference", "age_days", "height")])
   with_child <- !is.na(cases$age_days)
   r <- rbind(
-    growth_target_height(cases$sex[!with_child], cases$father[!with_child], cases$mother[!with_child],
+    growth_height_target(cases$sex[!with_child], cases$father[!with_child], cases$mother[!with_child],
       cases$reference[!with_child],
       methods = all_methods
     ),
-    growth_target_height(cases$sex[with_child], cases$father[with_child], cases$mother[with_child],
+    growth_height_target(cases$sex[with_child], cases$father[with_child], cases$mother[with_child],
       cases$reference[with_child],
       methods = all_methods, age_days = cases$age_days[with_child], height = cases$height[with_child]
     )
@@ -39,7 +39,7 @@ test_that("every value equals the engine's", {
 })
 
 test_that("the formulas, by hand", {
-  r <- growth_target_height(c("m", "f"), 180, 165, methods = all_methods)
+  r <- growth_height_target(c("m", "f"), 180, 165, methods = all_methods)
   m <- r[r$sex == "m", ]
   g <- r[r$sex == "f", ]
   rownames(m) <- m$method
@@ -72,22 +72,22 @@ test_that("the formulas, by hand", {
 })
 
 test_that("the child: from 2 years, on the reference's charts", {
-  r <- growth_target_height("f", 180, 165, "who", age_days = c(700, 1000, 3000, 7000), height = c(80, 95, 130, 170))
+  r <- growth_height_target("f", 180, 165, "who", age_days = c(700, 1000, 3000, 7000), height = c(80, 95, 130, 170))
   r <- r[r$method == "tanner", ]
   expect_identical(r$child_status, c("under_2_years", "ok", "ok", "outside"))
   expect_identical(r$child_chart, c(NA, "who_expanded", "who_2007_5_19", NA))
   expect_equal(r$child_z[3], growth_z(130, growth_convert(3000, "days", "months"), "f", "who_2007_5_19", "height"))
   expect_equal(r$diff_z, r$child_z - r$target_z)
-  expect_true(all(is.na(growth_target_height("m", 180, 165)$child_status)))
+  expect_true(all(is.na(growth_height_target("m", 180, 165)$child_status)))
 })
 
 test_that("the defaults, the order and the errors", {
-  expect_identical(growth_target_height("m", 180, 165)$method, c("tanner", "hermanussen_cole"))
-  expect_identical(growth_target_height("m", 180, 165, methods = c("luo", "tanner"))$method, c("tanner", "luo"))
-  expect_identical(growth_target_height(c("m", "f", "m"), 180, 165)$row, rep(1:3, each = 2))
-  expect_error(growth_target_height("m", 180, 165, methods = "mean"), "methods")
-  expect_error(growth_target_height("m", 180, 165, reference = "uk90"), "reference")
-  expect_error(growth_target_height("m", 180, 165, age_days = 1000), "both")
-  expect_warning(r <- growth_target_height("x", 180, 165), "Unknown sex")
+  expect_identical(growth_height_target("m", 180, 165)$method, c("tanner", "hermanussen_cole"))
+  expect_identical(growth_height_target("m", 180, 165, methods = c("luo", "tanner"))$method, c("tanner", "luo"))
+  expect_identical(growth_height_target(c("m", "f", "m"), 180, 165)$row, rep(1:3, each = 2))
+  expect_error(growth_height_target("m", 180, 165, methods = "mean"), "methods")
+  expect_error(growth_height_target("m", 180, 165, reference = "uk90"), "reference")
+  expect_error(growth_height_target("m", 180, 165, age_days = 1000), "both")
+  expect_warning(r <- growth_height_target("x", 180, 165), "Unknown sex")
   expect_true(all(is.na(r$target)))
 })

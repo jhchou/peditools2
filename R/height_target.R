@@ -94,18 +94,18 @@ luo_range_cm <- 10
 #' @export
 #' @examples
 #' # A girl, father 180 cm, mother 165 cm: Tanner and Hermanussen-Cole on CDC 2000
-#' growth_target_height("f", 180, 165)[c("method", "target", "target_z", "low", "high")]
+#' growth_height_target("f", 180, 165)[c("method", "target", "target_z", "low", "high")]
 #'
 #' # Every method, on WHO, and the child's height at 10 years
-#' growth_target_height("m", 175, 160,
+#' growth_height_target("m", 175, 160,
 #'   reference = "who", methods = c("tanner", "hermanussen_cole", "wright_cheetham", "jgz", "luo"),
 #'   age_days = growth_convert(10, "years", "days"), height = 135
 #' )[c("method", "target", "target_z", "child_z", "diff_z")]
 #'
 #' # Vectorised: one call for a data frame of families
 #' d <- data.frame(sex = c("m", "f"), father = c(182, 170), mother = c(168, 158))
-#' growth_target_height(d$sex, d$father, d$mother)[c("row", "method", "target")]
-growth_target_height <- function(sex, father, mother, reference = "cdc", methods = c("tanner", "hermanussen_cole"),
+#' growth_height_target(d$sex, d$father, d$mother)[c("row", "method", "target")]
+growth_height_target <- function(sex, father, mother, reference = "cdc", methods = c("tanner", "hermanussen_cole"),
                                  age_days = NULL, height = NULL) {
   if (!is.character(methods) || !length(methods) || anyNA(methods) || !all(methods %in% target_methods)) {
     stop("`methods` must be among ", paste0("\"", target_methods, "\"", collapse = ", "), ".", call. = FALSE)
