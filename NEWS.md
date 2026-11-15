@@ -1,3 +1,11 @@
+# peditools2 0.2.0
+
+- Two Noonan syndrome charts: `malaquias_2012` (Brazil; height, weight and BMI, 0-20 years) and `isojima_2016`
+  (Japan; the same measures and ages). Malaquias 2012 published centiles only: its L, M, S were fitted to them at
+  each age, reproducing every published centile within its rounding; in the girls' tables the column labelled 90th
+  is the +1 SD curve and was fitted as such (described on the PediTools Sources and methods page,
+  https://peditools.org/growth_engine/sources.php).
+
 # peditools2 0.1.0
 
 The first public version, the successor of `peditools` (written anew; not compatible with it).
