@@ -1,3 +1,13 @@
+# peditools2 0.4.0
+
+- Four Prader-Willi syndrome charts (Butler et al.), with the L, M, S the authors supplied to PediTools (2026-11-23):
+  `butler_2011` (not treated with growth hormone; weight, length, head circumference and BMI, 0-36 months, monthly),
+  `butler_2015` (not treated; weight, height, head circumference and BMI, 3-18 years), `butler_2016_infant` and
+  `butler_2016_pedi` (treated with growth hormone; length, weight and head circumference, 0-36 months; height, weight,
+  BMI and head circumference, 3-18 years). The 2015 and 2016 figures' lines, labelled 3rd to 97th percentiles, are
+  0.6667 SD apart: the 2.3rd to 97.7th percentiles (described on the PediTools Sources and methods page,
+  https://peditools.org/growth_engine/sources.php).
+
 # peditools2 0.3.0
 
 Four growth assessment tools, each as its PediTools calculator: mid-parental height, height velocity, predicted
