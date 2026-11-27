@@ -1,3 +1,19 @@
+# peditools2 0.5.0
+
+- Turner syndrome charts, for girls only (`sex` `"f"`; a boy's value is `NA`, status `"undefined"`), as the PediTools
+  Turner calculators:
+  - `lyon_1985`: Lyon, Preece and Grant 1985, height, 1-20 years, the paper's Table 1 means as printed (its "20 and
+    over" row at 20 years) with the SD fixed at 4.7% of the mean; `lyon_1985_rcpch`: the same with RCPCH's smoothed
+    means (natural cubic spline, rcpchgrowth 4.6.5).
+  - `ranke_1988`: Ranke et al. 1988, height, 2-20 years (its smoothed mean and SD; the adult row "19+" at 20 years).
+  - `rongen-westerlaken_1997`: Rongen-Westerlaken et al. 1997, height (0-21 years; the adult row at 21), weight (0-17)
+    and BMI (2-17) from the paper's log-normal equations, tabulated within 0.001 SDS (the 0-2 and 2-17 year weight
+    equations blended between 1.75 and 2.25 years); `rongen-westerlaken_1997_wt_for_ht`: weight-for-height, 75-155 cm.
+  - `isojima_2010`: Isojima et al. 2010 (Japan), height (mean and SD), weight and BMI, 1-20 years;
+    `isojima_2010_wt_for_ht`: weight-for-height, 45-155 cm. L and M as printed; S, printed to 2 decimals, estimated
+    from the paper's figures (each within the printed rounding; printed below 100 cm for weight-for-height).
+  How each was made: the PediTools Sources and methods page, https://peditools.org/growth_engine/sources.php.
+
 # peditools2 0.4.0
 
 - Four Prader-Willi syndrome charts (Butler et al.), with the L, M, S the authors supplied to PediTools (2026-11-23):

@@ -36,7 +36,8 @@ calculator, the section on its method).}
 }
 \description{
 One row per chart, measure and sex: everything needed to use a chart's parameters. A chart with one table for
-both sexes (e.g. \code{fenton_2003}, the INTERGROWTH-21st fetal standards) has one row with \code{sex} \code{NA}.
+both sexes (e.g. \code{fenton_2003}, the INTERGROWTH-21st fetal standards) has one row with \code{sex} \code{NA}; a chart for girls
+only (the Turner syndrome charts) has only \code{"f"} rows, and a boy's value on it is \code{NA} (status \code{"undefined"}).
 }
 \examples{
 charts <- growth_charts()

@@ -9,11 +9,22 @@ test_that("growth_charts() describes every table", {
   expect_true(all(nzchar(charts$x_units) & nzchar(charts$measure_units)))
   expect_identical(charts$on_website, !is.na(charts$calculators))
   expect_true(all(startsWith(charts$sources_url, "https://peditools.org/growth_engine/sources.php#")))
-  # A chart's sexes: either one table for both, or one for each
+  # A chart's sexes: one table for both, one for each, or girls only (the Turner syndrome charts)
   per_chart <- tapply(charts$sex, paste(charts$chart, charts$measure), function(s) {
-    identical(s, NA_character_) || setequal(s, c("m", "f"))
+    identical(s, NA_character_) || setequal(s, c("m", "f")) || identical(s, "f")
   })
   expect_true(all(per_chart))
+})
+
+test_that("the Turner syndrome charts are for girls only", {
+  turner <- growth_charts(c("lyon_1985", "lyon_1985_rcpch", "ranke_1988", "rongen-westerlaken_1997", "isojima_2010"))
+  expect_true(all(turner$sex == "f"))
+  # Lyon 1985 Table 1: 10 years, mean 119.5 cm, SD 4.7% of it
+  expect_equal(growth_z(c(119.5, 119.5 * 1.094), 10, "f", "lyon_1985", "height"), c(0, 2), tolerance = 1e-9)
+  # a boy has no table: NA, status "undefined"
+  expect_warning(z <- growth_z(119.5, 10, "m", "lyon_1985", "height"), "1 value NA")
+  expect_true(is.na(z))
+  expect_identical(growth_detail(119.5, 10, "m", "lyon_1985", "height")$status, "undefined")
 })
 
 test_that("growth_charts() reports the published method and coverage", {

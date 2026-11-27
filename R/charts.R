@@ -1,7 +1,8 @@
 #' The available charts
 #'
 #' One row per chart, measure and sex: everything needed to use a chart's parameters. A chart with one table for
-#' both sexes (e.g. `fenton_2003`, the INTERGROWTH-21st fetal standards) has one row with `sex` `NA`.
+#' both sexes (e.g. `fenton_2003`, the INTERGROWTH-21st fetal standards) has one row with `sex` `NA`; a chart for girls
+#' only (the Turner syndrome charts) has only `"f"` rows, and a boy's value on it is `NA` (status `"undefined"`).
 #'
 #' @param chart Chart ids to keep; `NULL` (default) for all.
 #' @return A data frame with columns:

@@ -1,6 +1,6 @@
 Package: peditools2
 Title: Pediatric and Neonatal Growth Chart Calculations and Parameters
-Version: 0.4.0
+Version: 0.5.0
 Authors@R:
     person("Joseph", "Chou", email = "joe.nicu@gmail.com", role = c("aut", "cre"))
 Description: Z-scores, probabilities and measurements for pediatric, neonatal
